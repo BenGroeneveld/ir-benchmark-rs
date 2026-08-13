@@ -1,5 +1,9 @@
 # iRacing Benchmark Program
 
+## Download
+
+Go to the [Releases page](https://github.com/BenGroeneveld/ir-benchmark-rs/releases) and download the latest release (`ir-benchmark-rs.zip`).
+
 ## Usage
 
 ### Initial setup
