@@ -1,0 +1,3 @@
+[workspace]
+resolver = "3"
+members = ["ir-bench-tui", "ir-bench-gui", "bench-vis"]

@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>iRacing Benchmark Analysis</title>
+    <script src="https://cdn.plot.ly/plotly-3.0.1.min.js"></script>
+    {__INLINE_CSS__}
+</head>
+
+<body>
+    <div class="container">
+        <div class="panel controls-panel">
+            <h2>Chart Controls</h2>
+            <div class="control-grid">
+                <label class="control-item is-checked" data-control="show_minmax" for="control-show-minmax">
+                    <input id="control-show-minmax" type="checkbox" checked>
+                    <span class="control-label">Min/Max range</span>
+                </label>
+                <label class="control-item is-checked" data-control="show_fps_lines" for="control-show-fps-lines">
+                    <input id="control-show-fps-lines" type="checkbox" checked>
+                    <span class="control-label">FPS lines</span>
+                </label>
+                <label class="control-item" data-control="show_mean_fill" for="control-show-mean-fill">
+                    <input id="control-show-mean-fill" type="checkbox">
+                    <span class="control-label">Fill under mean</span>
+                </label>
+            </div>
+            <div class="control-theme">
+                <label for="theme-select" class="theme-select-label">Theme</label>
+                <select id="theme-select" class="theme-select-input">
+                    <option value="plotly_dark">Plotly Dark</option>
+                    <option value="plotly">Plotly Light</option>
+                </select>
+            </div>
+        </div>
+        <div class="dashboard">
+            <div class="chart-column">
+                <div id="chart-viewer-panel" class="panel chart-viewer" tabindex="-1">
+                    <div class="chart-switcher" role="toolbar" aria-label="Chart selection">
+                        <button type="button" class="chart-nav-button" data-chart-nav="previous"
+                            aria-label="Previous chart">&#8592;</button>
+                        <div class="chart-switcher-title"><span id="active-chart-title">Frame Time Distribution</span>
+                        </div>
+                        <button type="button" class="chart-nav-button" data-chart-nav="next"
+                            aria-label="Next chart">&#8594;</button>
+                    </div>
+                    <div class="chart-stack">
+                        <div class="panel chart-panel is-active" tabindex="0" data-chart-panel="0"
+                            aria-label="Frame Time Distribution chart">
+                            <h2>Frame Time Distribution</h2>
+                            {__INLINE_HTML_FRAME_TIME_CHART__}
+                        </div>
+                        <div class="panel chart-panel" tabindex="0" data-chart-panel="1"
+                            aria-label="Frame Rate Over Time chart">
+                            <h2>Frame Rate Over Time</h2>
+                            {__INLINE_HTML_FRAME_RATE_CHART__}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="panel legend-panel">
+                <h2>Benchmark Groups Selection</h2>
+                {__INLINE_HTML_LINKED_LEGEND__}
+            </div>
+        </div>
+        {__INLINE_HTML_DIFF_TABLE_PANEL__}
+    </div>
+    {__INLINE_JS__}
+</body>
+
+</html>

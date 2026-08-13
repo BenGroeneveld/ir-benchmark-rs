@@ -1,0 +1,8 @@
+{
+    benchmarks: [
+        {
+            id: 1,
+            path: "./REPLACE FOLDER NAME AND CONTENTS",
+        },
+    ],
+}

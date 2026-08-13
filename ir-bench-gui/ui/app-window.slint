@@ -1,0 +1,400 @@
+import {
+    Button,
+    LineEdit,
+    TextEdit,
+    Switch,
+    ScrollView,
+    HorizontalBox,
+    VerticalBox,
+    SpinBox,
+    ProgressIndicator,
+} from "std-widgets.slint";
+
+export component AppWindow inherits Window {
+    min-width: 1080px;
+    min-height: 500px;
+    title: "iRacing Benchmark GUI";
+
+    in-out property <string> status: "Ready";
+    in-out property <string> logs: "";
+    in-out property <int> log_line_count: 0;
+    in-out property <string> output_folder: "";
+    in-out property <string> bench_vis_input_folder: "";
+    in-out property <string> bench_run_folder_name: "";
+    in-out property <string> benchmark_input_file: "";
+    in-out property <string> current_bench_id_file: "";
+    in-out property <int> current_bench_id_override: 0;
+    in-out property <string> benchmark_program: "";
+    in-out property <string> sim_name: "";
+    in-out property <string> process_name: "";
+    in-out property <string> iracing_folder: "";
+    in-out property <int> num_runs: 3;
+    in-out property <int> play_speed: 1;
+    in-out property <int> connection_timeout: 120;
+    in-out property <bool> verbose: false;
+    in-out property <string> benchmark_terminate_args: "";
+    in-out property <int> progress: 0;
+    in-out property <int> progress_total: 0;
+    in-out property <float> connection_timeout_percentage: 1.0;
+    in-out property <string> connection_timeout_countdown: "-";
+    in property <length> control_height: 32px;
+    in property <length> label_height: 24px;
+
+    callback start_benchmark();
+    callback stop_benchmark();
+    callback stop_now();
+    callback stop_after_run();
+    callback stop_after_last_run();
+    callback load_config();
+    callback save_config();
+    callback browse_output_folder();
+    callback browse_input_file();
+    callback browse_bench_folder();
+    callback poll_messages();
+    callback open_results();
+    callback open_bench_vis();
+
+    body := VerticalBox {
+        spacing: 8px;
+        padding: 8px;
+
+        actionbar := VerticalBox {
+            alignment: start;
+            spacing: 8px;
+            width: 100%;
+
+            HorizontalBox {
+                spacing: 8px;
+                height: root.control_height;
+
+                Button {
+                    // property <brush> button_color: Colors.green;
+                    primary: true;
+                    text: "Start";
+                    height: root.control_height;
+                    enabled: root.status == "Ready";
+                    clicked => root.start_benchmark();
+                }
+
+                Button {
+                    // property <brush> button_color: Colors.red;
+                    primary: false;
+                    text: "Stop now";
+                    height: root.control_height;
+                    enabled: root.status != "Ready";
+                    clicked => root.stop_now();
+                }
+
+                Button {
+                    // property <brush> button_color: Colors.orangered;
+                    primary: false;
+                    text: "Stop after run";
+                    height: root.control_height;
+                    enabled: root.status != "Ready";
+                    clicked => root.stop_after_run();
+                }
+
+                Button {
+                    // property <brush> button_color: Colors.orange;
+                    primary: false;
+                    text: "Stop after last run";
+                    height: root.control_height;
+                    enabled: root.status != "Ready";
+                    clicked => root.stop_after_last_run();
+                }
+
+                Button {
+                    // property <brush> button_color: Colors.blue;
+                    primary: true;
+                    text: "Open Visualization";
+                    height: root.control_height;
+                    enabled: root.status == "Ready";
+                    clicked => root.open_bench_vis();
+                }
+            }
+        }
+
+        HorizontalBox {
+            alignment: start;
+            spacing: 8px;
+            padding: 8px;
+            width: 100%;
+            // height: 100%;
+
+            ScrollView {
+                // padding: 8px;
+                min-width: 480px;
+                width: 40%;
+                // width: 480px;
+                // height: 100%;
+                vertical-scrollbar-policy: as-needed;
+                horizontal-scrollbar-policy: always-off;
+
+                VerticalBox {
+                    // spacing: 8px;
+                    padding: 8px;
+                    width: 100%;
+                    // height: 100%;
+
+                    Text {
+                        text: "Config Editor";
+                        font-size: 2.0rem;
+                        height: root.control_height;
+                    }
+
+                    HorizontalBox {
+                        spacing: 8px;
+                        width: 100%;
+
+                        Button {
+                            text: "Load Config";
+                            height: root.control_height;
+                            clicked => root.load_config();
+                        }
+
+                        Button {
+                            text: "Save Config";
+                            height: root.control_height;
+                            clicked => root.save_config();
+                        }
+                    }
+
+                    Text {
+                        text: "output_folder";
+                        height: root.label_height;
+                    }
+
+                    LineEdit {
+                        text <=> root.output_folder;
+                        height: root.control_height;
+                    }
+
+                    Text {
+                        text: "Bench Visualization Input Folder";
+                        height: root.label_height;
+                    }
+
+                    LineEdit {
+                        text <=> root.bench_vis_input_folder;
+                        height: root.control_height;
+                    }
+
+                    Text {
+                        text: "Bench Run Folder Name";
+                        height: root.label_height;
+                    }
+
+                    LineEdit {
+                        text <=> root.bench_run_folder_name;
+                        height: root.control_height;
+                    }
+
+                    Text {
+                        text: "benchmark_input_file";
+                        height: root.label_height;
+                    }
+
+                    LineEdit {
+                        text <=> root.benchmark_input_file;
+                        height: root.control_height;
+                    }
+
+                    Text {
+                        text: "current_bench_id_file";
+                        height: root.label_height;
+                    }
+
+                    LineEdit {
+                        text <=> root.current_bench_id_file;
+                        height: root.control_height;
+                    }
+
+                    Text {
+                        text: "current_bench_id_override";
+                        height: root.label_height;
+                    }
+
+                    SpinBox {
+                        value <=> root.current_bench_id_override;
+                        height: root.control_height;
+                        minimum: 0;
+                        maximum: 50;
+                    }
+
+                    Text {
+                        text: "benchmark_program";
+                        height: root.label_height;
+                    }
+
+                    LineEdit {
+                        text <=> root.benchmark_program;
+                        height: root.control_height;
+                    }
+
+                    Text {
+                        text: "sim_name";
+                        height: root.label_height;
+                    }
+
+                    LineEdit {
+                        text <=> root.sim_name;
+                        height: root.control_height;
+                    }
+
+                    Text {
+                        text: "process_name";
+                        height: root.label_height;
+                    }
+
+                    LineEdit {
+                        text <=> root.process_name;
+                        height: root.control_height;
+                    }
+
+                    Text {
+                        text: "iracing_folder";
+                        height: root.label_height;
+                    }
+
+                    LineEdit {
+                        text <=> root.iracing_folder;
+                        height: root.control_height;
+                    }
+
+                    Text {
+                        text: "num_runs";
+                        height: root.label_height;
+                    }
+
+                    SpinBox {
+                        value <=> root.num_runs;
+                        height: root.control_height;
+                        minimum: 1;
+                        maximum: 100;
+                    }
+
+                    Text {
+                        text: "play_speed";
+                        height: root.label_height;
+                    }
+
+                    SpinBox {
+                        value <=> root.play_speed;
+                        height: root.control_height;
+                        minimum: 1;
+                        maximum: 16;
+                    }
+
+                    Text {
+                        text: "connection_timeout";
+                        height: root.label_height;
+                    }
+
+                    SpinBox {
+                        value <=> root.connection_timeout;
+                        height: root.control_height;
+                        minimum: 1;
+                        maximum: 600;
+                    }
+
+                    Switch {
+                        text: "verbose";
+                        checked <=> root.verbose;
+                        height: root.control_height;
+                    }
+
+                    Text {
+                        text: "benchmark_terminate_args";
+                        height: root.label_height;
+                    }
+
+                    TextEdit {
+                        text <=> root.benchmark_terminate_args;
+                        height: 3 * root.control_height;
+                    }
+                }
+            }
+
+            HorizontalBox {
+                height: 100%;
+                min-width: 480px;
+                width: 60%;
+                // vertical-stretch: 1;
+                // horizontal-stretch: 1;
+
+                TextEdit {
+                    read_only: true;
+                    text: root.logs;
+                    font-size: 1.25rem;
+                    width: 100%;
+                    height: 100%;
+                }
+            }
+        }
+
+        statusbar := VerticalBox {
+            alignment: end;
+            height: 40px;
+
+            Rectangle {
+                width: 100%;
+                height: 1px;
+                background: #cccccc;
+            }
+
+            HorizontalBox {
+                spacing: 8px;
+                width: 100%;
+                height: 40px;
+                padding: 4px;
+
+                Text {
+                    text: "Status: " + root.status;
+                    wrap: no-wrap;
+                    font-size: 1.5rem;
+                }
+
+                Rectangle {
+                    width: 1px;
+                    height: parent.height;
+                    background: #cccccc;
+                }
+
+                Text {
+                    text: "Progress: " + ((root.progress_total > 0) ? (root.progress * 100 / root.progress_total) : "0") + "% (" + ((root.progress + 1) <= (root.progress_total) ? ("started run " + (root.progress + 1)) : ("finished run " + (root.progress_total))) + " of " + (root.progress_total) + ")";
+                    wrap: no-wrap;
+                    font-size: 1.5rem;
+                    color: (root.progress_total > 0) && (root.progress >= root.progress_total) ? Colors.green : Colors.white;
+                }
+
+                ProgressIndicator {
+                    progress: root.progress_total > 0 ? root.progress / root.progress_total : 0;
+                }
+
+                Rectangle {
+                    width: 1px;
+                    height: parent.height;
+                    background: #cccccc;
+                }
+
+                Text {
+                    text: "Connection timeout in: " + root.connection_timeout_countdown;
+                    wrap: no-wrap;
+                    font-size: 1.5rem;
+                    color: root.connection_timeout_countdown == "-" ? Colors.white : Colors.yellow;
+                }
+
+                ProgressIndicator {
+                    progress: 1.0 - root.connection_timeout_percentage;
+                }
+            }
+        }
+    }
+
+    // UI-side polling of messages from Rust worker threads
+    Timer {
+        interval: 200ms;
+        running: true;
+        triggered => root.poll_messages();
+    }
+}
