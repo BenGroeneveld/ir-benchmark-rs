@@ -13,6 +13,7 @@
   play_speed: 1,
   connection_timeout: 120,
   verbose: false,
+  car_number_override: 0,
   benchmark_terminate_args: [
     "--terminate_existing_session",
   ],

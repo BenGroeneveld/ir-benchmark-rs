@@ -40,6 +40,7 @@ struct ConfigData
     num_runs:                  i32,
     play_speed:                i32,
     connection_timeout:        i32,
+    car_number_override:       i32,
     verbose:                   bool,
     #[serde(default)]
     benchmark_terminate_args:  Vec<String>,
@@ -72,8 +73,9 @@ impl Default for ConfigData
             process_name:              String::new(),
             iracing_folder:            String::new(),
             num_runs:                  3,
-            play_speed:                1,
+            play_speed:                0,
             connection_timeout:        120,
+            car_number_override:       0,
             verbose:                   false,
             benchmark_terminate_args:  vec!["--terminate_existing_session".to_string()],
         }
@@ -389,7 +391,7 @@ fn main() -> Result<(), Box<dyn Error>>
         ui.on_open_results(move || open_results_folder_handler(ui_state.clone()));
     }
 
-    // Launch bench-vis for the configured output folder (runs `cargo run -p bench-vis -- <out>`)
+    // Launch Visualizer for the configured output folder
     {
         let ui_handle = ui.as_weak();
         let ui_state: UiState = UiState {
@@ -428,6 +430,7 @@ fn main() -> Result<(), Box<dyn Error>>
 fn load_config(ui_state: &mut UiState, cfg: &ConfigData)
 {
     let ui = ui_state.ui_handle.unwrap();
+    let play_speed_idx = f32::log2(cfg.play_speed as f32).round() as i32;
 
     ui.set_output_folder(cfg.output_folder.to_shared_string());
     ui.set_bench_vis_input_folder(cfg.bench_vis_input_folder.to_shared_string());
@@ -440,8 +443,9 @@ fn load_config(ui_state: &mut UiState, cfg: &ConfigData)
     ui.set_process_name(cfg.process_name.to_shared_string());
     ui.set_iracing_folder(cfg.iracing_folder.to_shared_string());
     ui.set_num_runs(cfg.num_runs);
-    ui.set_play_speed(cfg.play_speed);
+    ui.set_play_speed_idx(play_speed_idx);
     ui.set_connection_timeout(cfg.connection_timeout);
+    ui.set_car_number_override(cfg.car_number_override);
     ui.set_verbose(cfg.verbose);
     ui.set_benchmark_terminate_args(cfg.benchmark_terminate_args.join(", ").to_shared_string());
 }
@@ -479,22 +483,26 @@ fn get_config_from_ui(ui_state: UiState) -> ConfigData
 {
     let ui = ui_state.ui_handle.unwrap();
 
+    let play_speed_idx: i32 = ui.get_play_speed_idx();
+    let play_speed = f32::powf(2.0, play_speed_idx as f32).round() as i32;
+
     let cfg: ConfigData = ConfigData {
-        output_folder:             ui.get_output_folder().to_string(),
-        bench_vis_input_folder:    ui.get_bench_vis_input_folder().to_string(),
-        bench_run_folder_name:     ui.get_bench_run_folder_name().to_string(),
-        input_file:                ui.get_benchmark_input_file().to_string(),
-        current_bench_id_file:     ui.get_current_bench_id_file().to_string(),
+        output_folder: ui.get_output_folder().to_string(),
+        bench_vis_input_folder: ui.get_bench_vis_input_folder().to_string(),
+        bench_run_folder_name: ui.get_bench_run_folder_name().to_string(),
+        input_file: ui.get_benchmark_input_file().to_string(),
+        current_bench_id_file: ui.get_current_bench_id_file().to_string(),
         current_bench_id_override: ui.get_current_bench_id_override(),
-        benchmark_program:         ui.get_benchmark_program().to_string(),
-        sim_name:                  ui.get_sim_name().to_string(),
-        process_name:              ui.get_process_name().to_string(),
-        iracing_folder:            ui.get_iracing_folder().to_string(),
-        num_runs:                  ui.get_num_runs(),
-        play_speed:                ui.get_play_speed(),
-        connection_timeout:        ui.get_connection_timeout(),
-        verbose:                   ui.get_verbose().to_string().to_lowercase() == "true",
-        benchmark_terminate_args:  json5::from_str(ui.get_benchmark_terminate_args().as_str())
+        benchmark_program: ui.get_benchmark_program().to_string(),
+        sim_name: ui.get_sim_name().to_string(),
+        process_name: ui.get_process_name().to_string(),
+        iracing_folder: ui.get_iracing_folder().to_string(),
+        num_runs: ui.get_num_runs(),
+        play_speed,
+        connection_timeout: ui.get_connection_timeout(),
+        car_number_override: ui.get_car_number_override(),
+        verbose: ui.get_verbose().to_string().to_lowercase() == "true",
+        benchmark_terminate_args: json5::from_str(ui.get_benchmark_terminate_args().as_str())
             .unwrap_or(vec!["--terminate_existing_session".to_string()]),
     };
 

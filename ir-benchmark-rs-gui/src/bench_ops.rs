@@ -11,7 +11,7 @@ use std::{
 use anyhow::{Result, anyhow};
 use chrono::Local;
 use iracing::{
-    broadcast::{cam_set_state, replay_search, replay_set_play_speed},
+    broadcast::{cam_set_state, cam_switch_num, replay_search, replay_set_play_speed},
     session::SessionDetails,
     states::CameraState,
     telemetry::{Connection, Sample, Value},
@@ -257,6 +257,47 @@ fn copy_current_iracing_ini_files_to_folder(config: &ConfigData, target_folder: 
     Ok(())
 }
 
+fn get_user_car_id(connection: &mut Connection) -> Result<i32>
+{
+    let sample_res = connection.telemetry();
+    let sample = match sample_res
+    {
+        Ok(s) => s,
+        Err(e) => return Err(anyhow!("Failed to get telemetry sample: {}", e)),
+    };
+
+    let player_car_idx_res = sample.get("PlayerCarIdx");
+    let player_car_idx = match player_car_idx_res
+    {
+        Ok(v) => value_to_i32(&v).ok_or_else(|| anyhow!("PlayerCarIdx is not an integer"))?,
+        Err(e) => return Err(anyhow!("Failed to get PlayerCarIdx: {}", e)),
+    };
+
+    Ok(player_car_idx)
+}
+
+fn get_car_number_raw(connection: &mut Connection, car_idx: i32) -> Result<i32>
+{
+    let driver_info = match connection.session_info()
+    {
+        Ok(info) => info,
+        Err(e) => return Err(anyhow!("Failed to get session info: {}", e)),
+    };
+
+    for driver in driver_info.drivers.other_drivers.iter()
+    {
+        if driver.index == car_idx as usize
+        {
+            return Ok(driver.car_number as i32);
+        }
+    }
+
+    Err(anyhow!(
+        "Failed to get car number for car index: {}",
+        car_idx
+    ))
+}
+
 fn loop_get_data(connection: &mut Connection) -> Option<IracingSessionTelemetry>
 {
     // Try to read a telemetry sample
@@ -303,29 +344,12 @@ fn loop_get_data(connection: &mut Connection) -> Option<IracingSessionTelemetry>
 
 fn get_cancel_state(ui_state: &mut UiState) -> bool
 {
-    let cancel_state = ui_state.stop_flag.load(std::sync::atomic::Ordering::SeqCst);
-
-    if cancel_state
-    {
-        ui_state
-            .log_tx
-            .send(format!("Get cancel state: {}", cancel_state))
-            .ok();
-    }
-
-    cancel_state
+    ui_state.stop_flag.load(std::sync::atomic::Ordering::SeqCst)
 }
 
 fn check_canceled(ui_state: &mut UiState, sleep_s: f32) -> Result<()>
 {
-    let is_canceled = get_cancel_state(ui_state);
-    // let ret_bench_state = BenchState {
-    //     is_connected: bench_state.is_connected,
-    //     is_running:   bench_state.is_running,
-    //     is_at_end:    bench_state.is_at_end,
-    // };
-
-    if is_canceled
+    if get_cancel_state(ui_state)
     {
         return Err(anyhow!("Benchmark canceled by user"));
     }
@@ -346,11 +370,47 @@ fn single_bench_run_setup(
 {
     const SETUP_INTERVAL_S: f32 = 1.0 / 4.0;
 
+    // pause the replay
     replay_set_play_speed(0, false);
     check_canceled(ui_state, SETUP_INTERVAL_S)?;
 
+    // set the replay to the start
     replay_search(RpySrchMode::ToStart);
     check_canceled(ui_state, SETUP_INTERVAL_S)?;
+
+    let car_num_override = if config.car_number_override > 0
+    {
+        Some(config.car_number_override)
+    }
+    else
+    {
+        None
+    };
+
+    let car_num = match car_num_override
+    {
+        Some(num) => Ok(num),
+        None => match get_user_car_id(connection)
+        {
+            Ok(car_idx) => match get_car_number_raw(connection, car_idx)
+            {
+                Ok(car_num) => Ok(car_num),
+                Err(e) => Err(anyhow!(format!("Failed to get user car number: {}", e))),
+            },
+            Err(e) => Err(anyhow!(format!("Failed to get user car ID: {}", e))),
+        },
+    };
+
+    if let Ok(num) = car_num
+    {
+        ui_state
+            .log_tx
+            .send(format!("Switching to cockpit cam of car number: {}", num))
+            .ok();
+
+        cam_switch_num(num, 9, 0);
+        check_canceled(ui_state, SETUP_INTERVAL_S)?;
+    }
 
     replay_set_play_speed(1, false);
     check_canceled(ui_state, SETUP_INTERVAL_S)?;
@@ -795,12 +855,12 @@ pub fn open_bench_vis_exe(
 ) -> Result<()>
 {
     let bin_folder_path = get_app_root_dir();
-    let bench_vis_exe = bin_folder_path.join("bench-vis");
+    let bench_vis_exe = bin_folder_path.join("ir-benchmark-rs-visualizer.exe");
 
     ui_state
         .log_tx
         .send(format!(
-            "Launching bench-vis: {} '{}'",
+            "Launching Visualizer: {} '{}'",
             bench_vis_exe.display(),
             group_path.display()
         ))
@@ -813,7 +873,7 @@ pub fn open_bench_vis_exe(
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .spawn()
-        .map_err(|e| anyhow!("Failed to launch bench-vis: {}", e))?;
+        .map_err(|e| anyhow!("Failed to launch Visualizer: {}", e))?;
 
     if let Some(stderr) = child.stderr.take()
     {
@@ -822,7 +882,7 @@ pub fn open_bench_vis_exe(
             let reader = BufReader::new(stderr);
             for line in reader.lines().map_while(Result::ok)
             {
-                tx.send(format!("[bench-vis stderr] {line}")).ok();
+                tx.send(format!("[Visualizer stderr] {line}")).ok();
             }
         });
     }
@@ -834,7 +894,7 @@ pub fn open_bench_vis_exe(
             let reader = BufReader::new(stdout);
             for line in reader.lines().map_while(Result::ok)
             {
-                tx.send(format!("[bench-vis stdout] {line}")).ok();
+                tx.send(format!("[Visualizer stdout] {line}")).ok();
             }
         });
     }
@@ -842,7 +902,7 @@ pub fn open_bench_vis_exe(
     match child.try_wait()
     {
         Ok(_) => Ok(()),
-        Err(e) => Err(anyhow!("Failed waiting for bench-vis: {}", e)),
+        Err(e) => Err(anyhow!("Failed waiting for Visualizer: {}", e)),
     }
 }
 

@@ -2,14 +2,14 @@
 
 ## Download
 
-Go to the [Releases page](https://github.com/BenGroeneveld/ir-benchmark-rs/releases) and download the latest release (`ir-benchmark-rs.zip`).
+Go to the [Releases page](https://github.com/BenGroeneveld/ir-benchmark-rs/releases) and download the latest release (`ir-benchmark-rs*.zip`).
 
 ## Usage
 
 ### Initial setup
 
 1. Go to the `bin` folder and right click the `ir-benchmark-rs-gui.exe` file and select `Properties`. In the `Compatibility` tab, check the `Run this program as an administrator` option. Click `Apply` and then `OK`. This is necessary for the benchmark program to be able to log the benchmark results.
-2. Copy the replay folders/files within this folder to your iRacing folder (`.../My Documents/iRacing/replay`).
+2. **Optional:** Copy the replay folders/files within this folder to your iRacing folder (`.../My Documents/iRacing/replay`).
 3. Go to the `bin/input` folder and rename the folder `REPLACE FOLDER NAME AND CONTENTS` to a useful name which describes its main difference to the other input folders. Examples: `Default`, `Reflex Off - No FPS Limit`, `Reflex Off - FPS Limit 144`.
 4. Again in the `bin/input` folder, fill in the `benchmark_order.ir_bench.json5` file with the new folder name and any other input folders you have created. The order in which the benchmarks will be run is defined by the id of the benchmarks. Examples of the `benchmark_order.ir_bench.json5` file are shown below. Save the file after editing.
 5. Copy the `rendererDX11Monitor.ini` file from the `.../My Documents/iRacing` folder to the `bin/input` subfolders. This file is your baseline graphics settings for the benchmark. In order to test different graphics settings, you can edit the `rendererDX11Monitor.ini` file in each of the input subfolders. The benchmark program will use the `rendererDX11Monitor.ini` file from each input subfolder when running the benchmarks. You can also test different `app.ini` settings by copying the `app.ini` file from the `.../My Documents/iRacing` folder to the `bin/input` subfolders and editing it there.
